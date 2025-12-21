@@ -1,7 +1,15 @@
 from fastapi import FastAPI
+from app.api.health import router as health_router
+from app.api.middleware.cors import CORSMiddleware
+from app.core.config import settings
 
-app = FastAPI()
+app = FastAPI(title=settings.app_name)
 
-@app.get("/")
-def root():
-    return {"status": "backend running"}
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["https://fyp-25-s4-23-1.onrender.com"],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
+app.include_router(health_router)
