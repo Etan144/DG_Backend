@@ -132,9 +132,9 @@
         feedbackMessage.textContent = 'Login successful! Redirecting...';
         feedbackMessage.style.color = 'var(--accent)';
         
-        // Redirect to dashboard or home page after 2 seconds
+        // Redirect to download page after 2 seconds
         setTimeout(() => {
-          window.location.href = 'index.html';
+          window.location.href = 'download.html';
         }, 2000);
       } catch (error) {
         feedbackMessage.textContent = `Error: ${error.message}`;
