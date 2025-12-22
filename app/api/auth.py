@@ -11,5 +11,3 @@ def register(request: RegisterRequest):
 @router.post("/verify-otp")
 def verify_otp(request: VerifyOtpRequest):
     return verify_otp_code(request)
-
-# --- IGNORE ---
