@@ -7,7 +7,7 @@ class Settings(BaseSettings):
     env: str = "development"
     secret_key: str
     sendgrid_api_key: str
-    sendgrid_from_email: str = "noreply@deepfakeguard.com"
+    sendgrid_from_email: str = "dfguardmail@gmail.com"
 
     class Config:
         env_file = ".env"
