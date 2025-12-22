@@ -1,5 +1,5 @@
 from datetime import datetime, timedelta
-from typing import Optional 
+from typing import Optional, Dict
 from app.core.config import settings
 from bson import ObjectId
 from app.db.database import db
@@ -20,6 +20,7 @@ if not SECRET_KEY:
 
 ALGORITHM = "HS256"
 ACCESS_TOKEN_EXPIRE_MINUTES = 60
+REFRESH_TOKEN_EXPIRE_DAYS = 7
 
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/auth/login")
 
@@ -31,16 +32,38 @@ def create_access_token(subject: str, expires_delta: Optional[timedelta] = None)
     else:
         expire = datetime.utcnow() + timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES)
     
-    payload = {"sub": subject, "exp": expire, "iat": datetime.utcnow()}
+    payload = {"sub": subject, "exp": expire, "iat": datetime.utcnow(), "type": "access"}
 
     encoded_jwt = jwt.encode(payload, SECRET_KEY, algorithm=ALGORITHM)
     return encoded_jwt
+
+def create_refresh_token(subject: str) -> str:
+    """Create a JWT refresh token."""
+    expire = datetime.utcnow() + timedelta(days=REFRESH_TOKEN_EXPIRE_DAYS)
+    payload = {"sub": subject, "exp": expire, "iat": datetime.utcnow(), "type": "refresh"}
+    encoded_jwt = jwt.encode(payload, SECRET_KEY, algorithm=ALGORITHM)
+    return encoded_jwt
+
+def create_tokens(subject: str) -> Dict[str, str]:
+    """Create both access and refresh tokens."""
+    return {
+        "access_token": create_access_token(subject),
+        "refresh_token": create_refresh_token(subject),
+        "token_type": "bearer"
+    }
 
 # Token verification
 def decode_access_token(token: str) -> str:
     """decode a JWT access token and return the subject."""
     try:
         payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
+        token_type = payload.get("type")
+        if token_type != "access":
+            raise HTTPException(
+                status_code=status.HTTP_401_UNAUTHORIZED,
+                detail="Invalid token type",
+                headers={"WWW-Authenticate": "Bearer"}
+            )
         subject: str = payload.get("sub")
         if subject is None:
             raise HTTPException(
@@ -53,6 +76,32 @@ def decode_access_token(token: str) -> str:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Invalid token or expired token",
+            headers={"WWW-Authenticate": "Bearer"}
+        )
+
+def decode_refresh_token(token: str) -> str:
+    """Decode a JWT refresh token and return the subject."""
+    try:
+        payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
+        token_type = payload.get("type")
+        if token_type != "refresh":
+            raise HTTPException(
+                status_code=status.HTTP_401_UNAUTHORIZED,
+                detail="Invalid token type",
+                headers={"WWW-Authenticate": "Bearer"}
+            )
+        subject: str = payload.get("sub")
+        if subject is None:
+            raise HTTPException(
+                status_code=status.HTTP_401_UNAUTHORIZED,
+                detail="Invalid refresh token",
+                headers={"WWW-Authenticate": "Bearer"}
+            )
+        return subject
+    except JWTError:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Invalid or expired refresh token",
             headers={"WWW-Authenticate": "Bearer"}
         )
     
