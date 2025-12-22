@@ -64,7 +64,7 @@ def verify_otp_code(data):
         user_collection.insert_one({
             "username": record["username"],
             "email": record["email"],
-            "password": record["hashed_password"],
+            "hashed_password": record["hashed_password"],
             "verified": True,
             "created_at": datetime.utcnow()
         })

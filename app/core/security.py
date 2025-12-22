@@ -1,10 +1,16 @@
 from datetime import datetime, timedelta
 from typing import Optional 
 from app.core.config import settings
+from bson import ObjectId
+from app.db.database import db
+from fastapi import Depends
 
 from fastapi import HTTPException, status
 from fastapi.security import OAuth2PasswordBearer
 from jose import JWTError, jwt
+
+user_collection = db.users
+
 
 #JWT Config
 
@@ -49,3 +55,16 @@ def decode_access_token(token: str) -> str:
             detail="Invalid token or expired token",
             headers={"WWW-Authenticate": "Bearer"}
         )
+    
+# Get current user from token
+def get_current_user(token: str = Depends(oauth2_scheme)):
+    user_id = decode_access_token(token)
+
+    user = user_collection.find_one({"_id": ObjectId(user_id)})
+    if not user:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="User not found"
+        )
+
+    return user
