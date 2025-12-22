@@ -2,14 +2,18 @@ import random
 from datetime import datetime, timedelta
 from fastapi import HTTPException
 from passlib.context import CryptContext
-from pymongo import DuplicateKeyError
+from pymongo.errors import DuplicateKeyError
+
 from app.db.database import db
 from app.services.email_service import send_otp_email
+from app.core.security import create_access_token
 
 otp_collection = db.otp
 user_collection = db.users
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 
+max_resend_attemps = 5
+resend_window_minutes = 10
 
 def generate_otp() -> str:
     """Generate a 6-digit OTP code."""
@@ -70,3 +74,53 @@ def verify_otp_code(data):
     otp_collection.delete_one({"email": data.email})
 
     return {"message": "User account created"}
+
+
+def resend_otp_service(data):
+    record = otp_collection.find_one({"email": data.email})
+
+    if not record:
+        raise HTTPException(status_code=400, detail="No OTP request found for this email")
+    
+    now = datetime.utcnow()
+    
+    resend_count = record.get("resend_count", 0)
+    last_resend_at = record.get("last_resend_at")
+
+    #Rate limiting stuff
+    if resend_count >= max_resend_attemps:
+        if last_resend_at and (now - last_resend_at) < timedelta(minutes=resend_window_minutes):
+            raise HTTPException(status_code=429, detail="Max resend attempts reached. Please try again later." )
+        else:
+            #Reset counter
+            resend_count = 0
+    
+
+    #Generate new OTP
+    new_otp = generate_otp()
+
+    otp_collection.update_one(
+        {"email": data.email},
+        {
+            "$set": {
+                "otp": new_otp,
+                "expires_at": now + timedelta(minutes=5),
+                "last_resend_at": now
+            },
+            "$inc": {"resend_count": 1}
+        }   
+    )
+
+    send_otp_email(data.email,new_otp)
+
+    return {"message": "OTP resent successfully"}
+
+
+def login_user(data):
+    user = user_collection.find_one({"email": data.email})
+    if not user or not pwd_context.verify(data.password, user["hashed_password"]):
+        raise HTTPException(status_code=401, detail="Invalid email or password")
+    
+    access_token = create_access_token(subject = str(user["_id"]))
+    
+    return {"access_token": access_token, "token_type": "bearer"}

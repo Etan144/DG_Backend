@@ -7,6 +7,7 @@ class Settings(BaseSettings):
     smtp_email: str
     smtp_password: str
     env: str = "development"
+    secret_key: str
 
     class Config:
         env_file = ".env"

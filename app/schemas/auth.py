@@ -11,3 +11,14 @@ class RegisterRequest(BaseModel):
 class VerifyOtpRequest(BaseModel):
     email: EmailStr
     otp: str
+
+class ResendOtpRequest(BaseModel):
+    email: EmailStr
+
+class LoginRequest(BaseModel):
+    email: EmailStr
+    password: str
+
+class TokenResponse(BaseModel):
+    access_token: str
+    token_type: str = "bearer"
