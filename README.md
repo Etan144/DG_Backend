@@ -60,22 +60,3 @@ FastAPI backend service for user authentication and account management using Mon
    ```
 
 The API will be available at `http://localhost:8000`
-
-## Important: Git Workflow
-
-⚠️ **Always activate the virtual environment before running git commands**
-
-When contributing to this project, ensure you're inside the `venv` environment before running `git add`, `git commit`, or any git operations. This prevents accidentally committing virtual environment files or other unwanted files.
-
-```bash
-# ✅ Correct
-.\venv\Scripts\Activate.ps1  # Activate venv first
-git add .
-git commit -m "message"
-
-# ❌ Wrong - don't do this
-git add .  # without activating venv first
-git commit -m "message"
-```
-
-The `.gitignore` file protects the repo, but it's a best practice to always work within the activated environment.
