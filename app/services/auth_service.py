@@ -39,7 +39,10 @@ def register_user(data):
         # Check if user already exists
         if user_collection.find_one({"email": data.email}):
             logger.warning(f"Registration attempt for existing email: {data.email}")
-            raise HTTPException(status_code=400, detail="User already exists")
+            raise HTTPException(status_code=409, detail="User already exists")
+        
+        if user_collection.find_one({"username":data.username}):
+            raise HTTPException(status_code=409, detail="Username already exists")
         
         # Remove any existing OTPs for this email 
         # Prevents replay attacks
@@ -113,9 +116,22 @@ def verify_otp_code(data):
                 "created_at": datetime.utcnow()
             })
             logger.info(f"User account created for email: {data.email}")
-        except DuplicateKeyError:
-            logger.warning(f"User already exists during OTP verification: {data.email}")
-            raise HTTPException(status_code=400, detail="User already exists")
+        except DuplicateKeyError as e:
+
+            error_msg = str(e)
+
+            if "username" in error_msg:
+                raise HTTPException(
+                    status_code =409,
+                    detail = "Username already exists"
+                )
+            elif "email" in error_msg:
+                raise HTTPException(
+                    status_code=409, detail = "Email already exists"
+                )
+            else:
+                logger.warning(f"User already exists during OTP verification: {data.email}")
+                raise HTTPException(status_code=409, detail="User already exists")
 
         # Clean up OTP record
         otp_collection.delete_one({"email": data.email})
