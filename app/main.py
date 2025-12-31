@@ -10,6 +10,9 @@ import os
 from app.api.auth import router as auth_router
 from app.api.users import router as users_router
 from app.api.health import router as health_router
+from app.api.calls import router as call_router
+from app.api.firebase_api import router as firebase_router
+
 from app.core.config import settings
 from app.core.logging import get_logger
 
@@ -82,5 +85,7 @@ async def shutdown_event():
 app.include_router(health_router)
 app.include_router(auth_router)
 app.include_router(users_router)
+app.include_router(call_router)
+app.include_router(firebase_router)
 
 logger.info("DG Backend API initialized successfully")

@@ -1,82 +1,44 @@
-from fastapi import APIRouter,HTTPException
+from fastapi import APIRouter, Depends, HTTPException
 from uuid import uuid4
 from datetime import datetime
 
-from app.schemas.call_signalling import (
-    InviteRequest,
-    OfferRequest,
-    AnswerRequest,
-    IceCandidateRequest
-)
+from app.schemas.call_signalling import InviteRequest
+from app.core.firebase import firestore_db
+from app.core.security import get_current_user
 
-from app.services.call_store import CALL_SESSIONS
+router = APIRouter(prefix="/calls",tags=["Calls"])
 
-router = APIRouter()
-
-@router.post("/calls/invite")
-def invite(data: InviteRequest):
+@router.post("/invite")
+def invite(data: InviteRequest, current_user=Depends(get_current_user)):
     call_id = str(uuid4())
 
-    CALL_SESSIONS[call_id] = {
-        "call_id": call_id,
-        "caller_user_id": "caller_id_placeholder",  # from JWT later
+    firestore_db.collection("calls").document(call_id).set({
+        "call_id":call_id,
+        "caller_user_id": current_user.id,
         "callee_user_id": data.callee_user_id,
-        "status": "ringing",
-        "offer": None,
-        "answer": None,
-        "ice": {
-            "caller": [],
-            "callee": []
-        },
+        "status":"ringing",
         "created_at": datetime.utcnow()
-    }
+    })
 
     return {"call_id": call_id}
 
-@router.post("/calls/{call_id}/offer")
-def offer(call_id: str, data: OfferRequest):
-    session = CALL_SESSIONS.get(call_id)
-    if not session:
+@router.post("/{call_id}/end")
+def end_call(call_id:str, current_user=Depends(get_current_user)):
+    doc_ref = firestore_db.collection("calls").document(call_id)
+    doc = doc_ref.get()
+
+    if not doc.exists:
         raise HTTPException(status_code=404, detail="Call not found")
+    
+    data = doc.to_dict()
 
-    session["offer"] = data.sdp
-    session["status"] = "accepted"
+    #Auth check
+    if current_user.id not in [data["caller_user_id"],data["callee_user_id"]]:
+        raise HTTPException(status_code=403,detail="Not authorized to end this call")
+    
+    doc_ref.update({
+        "status":"ended",
+        "ended_at": datetime.utcnow()
+    })
 
-    return {"message": "Offer received"}
-
-@router.post("/calls/{call_id}/answer")
-def answer(call_id: str, data: AnswerRequest):
-    session = CALL_SESSIONS.get(call_id)
-    if not session:
-        raise HTTPException(status_code=404, detail="Call not found")
-
-    session["answer"] = data.sdp
-    session["status"] = "in_call"
-
-    return {"message": "Answer received"}
-
-@router.post("/calls/{call_id}/ice")
-def ice(call_id: str, data: IceCandidateRequest, role: str):
-    session = CALL_SESSIONS.get(call_id)
-    if not session:
-        raise HTTPException(status_code=404, detail="Call not found")
-
-    if role not in ["caller", "callee"]:
-        raise HTTPException(status_code=400, detail="Invalid role")
-
-    session["ice"][role].append(data.dict())
-
-    return {"message": "ICE candidate added"}
-
-@router.get("/calls/{call_id}/events")
-def events(call_id: str):
-    session = CALL_SESSIONS.get(call_id)
-    if not session:
-        raise HTTPException(status_code=404, detail="Call not found")
-
-    return {
-        "status": session["status"],
-        "offer": session["offer"],
-        "answer": session["answer"],
-        "ice": session["ice"]
-    }
+    return {"message":"Call ended"}
