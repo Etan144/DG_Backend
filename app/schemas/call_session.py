@@ -19,7 +19,8 @@ class CallSession(BaseModel):
     call_id : str
     caller_user_id: str
     callee_user_id: str
-    status : CallStatus = CallStatus.ringing
+    status : CallStatus
+    
 
     offer_sdp : Optional[str] = None
     answer_sdp : Optional[str] = None
