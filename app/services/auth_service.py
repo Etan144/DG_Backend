@@ -222,18 +222,18 @@ def login_user(data):
         HTTPException: If credentials are invalid
     """
     try:
-        user = user_collection.find_one({"email": data.email})
+        user = user_collection.find_one({"username": data.username})
         if not user or not pwd_context.verify(data.password, user["hashed_password"]):
-            logger.warning(f"Failed login attempt for email: {data.email}")
-            raise HTTPException(status_code=401, detail="Invalid email or password")
+            logger.warning(f"Failed login attempt for username: {data.username}")
+            raise HTTPException(status_code=401, detail="Invalid username or password")
         
         tokens = create_tokens(subject=str(user["_id"]))
-        logger.info(f"User logged in successfully: {data.email}")
+        logger.info(f"User logged in successfully: {data.username}")
         
         return tokens
     
     except HTTPException:
         raise
     except Exception as e:
-        logger.error(f"Error during login for {data.email}: {e}")
+        logger.error(f"Error during login for {data.username}: {e}")
         raise HTTPException(status_code=500, detail="Login failed. Please try again.")

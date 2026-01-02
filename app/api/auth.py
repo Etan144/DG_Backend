@@ -35,7 +35,7 @@ def resend_otp(request: Request, auth_request: ResendOtpRequest):
 @router.post("/login", response_model=TokenResponse)
 @limiter.limit("5/minute")
 def login(request: Request, auth_request: LoginRequest):
-    """Login with email and password. Returns access and refresh tokens.
+    """Login with username and password. Returns access and refresh tokens.
     
     Rate limit: 5 requests per minute
     """

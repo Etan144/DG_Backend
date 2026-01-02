@@ -39,7 +39,7 @@ class ResendOtpRequest(BaseModel):
     email: EmailStr
 
 class LoginRequest(BaseModel):
-    email: EmailStr
+    username: str
     password: str
 
 class RefreshTokenRequest(BaseModel):
