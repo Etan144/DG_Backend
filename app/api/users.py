@@ -2,7 +2,7 @@ from fastapi import APIRouter, Depends
 from app.core.security import get_current_user
 from app.core.security import decode_access_token
 from app.db.database import db
-from bson import ObjectId
+from app.schemas.user import FCMTokenRequest
 
 router = APIRouter(
     prefix="/users",
@@ -23,3 +23,11 @@ def get_me(current_user = Depends(get_current_user)):
         "created_at_seconds": int(current_user["created_at"].timestamp())
     }
 
+
+@router.post("/fcm-token")
+def register_fcm_token(request: FCMTokenRequest, current_user=Depends(get_current_user)):
+    db.users.update_one( 
+        {"_id": current_user["_id"]},
+        {"$set":{"fcm_token": request.fcm_token}}
+        )
+    return {"status": "FCM token registered"}
