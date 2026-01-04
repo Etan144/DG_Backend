@@ -15,7 +15,7 @@ def invite(data: InviteRequest, current_user=Depends(get_current_user)):
 
     firestore_db.collection("calls").document(call_id).set({
         "call_id":call_id,
-        "caller_user_id": current_user.id,
+        "caller_user_id": str(current_user["_id"]),
         "callee_user_id": data.callee_user_id,
         "status":"ringing",
         "created_at": datetime.utcnow()
@@ -25,7 +25,7 @@ def invite(data: InviteRequest, current_user=Depends(get_current_user)):
     send_incoming_call_notification(
         callee_user_id = data.callee_user_id,
         call_id = call_id,
-        caller_name = current_user.username
+        caller_name = current_user["username"]
     )
 
     return {"call_id": call_id}
@@ -41,7 +41,7 @@ def end_call(call_id:str, current_user=Depends(get_current_user)):
     data = doc.to_dict()
 
     #Auth check
-    if current_user.id not in [data["caller_user_id"],data["callee_user_id"]]:
+    if str(current_user["_id"]) not in [data["caller_user_id"], data["callee_user_id"]]:
         raise HTTPException(status_code=403,detail="Not authorized to end this call")
     
     doc_ref.update({
