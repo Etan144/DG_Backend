@@ -5,6 +5,7 @@ from datetime import datetime
 from app.schemas.call_signalling import InviteRequest
 from app.core.firebase import firestore_db
 from app.core.security import get_current_user
+from app.services.fcm_service import send_incoming_call_notification
 
 router = APIRouter(prefix="/calls",tags=["Calls"])
 
@@ -19,6 +20,13 @@ def invite(data: InviteRequest, current_user=Depends(get_current_user)):
         "status":"ringing",
         "created_at": datetime.utcnow()
     })
+
+    #Send push notif to callee
+    send_incoming_call_notification(
+        callee_user_id = data.callee_user_id,
+        call_id = call_id,
+        caller_name = current_user.username
+    )
 
     return {"call_id": call_id}
 
