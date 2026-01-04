@@ -7,7 +7,8 @@ router = APIRouter(prefix="/firebase",tags=["Firebase"])
 
 @router.post("/token")
 def get_firebase_token(current_user=Depends(get_current_user)):
-    firebase_token = auth.create_custom_token(str(current_user.id))
+    uid = str(current_user["_id"])
+    firebase_token = auth.create_custom_token(uid)
     return {
         "firebase_token": firebase_token.decode("utf-8")
     }
